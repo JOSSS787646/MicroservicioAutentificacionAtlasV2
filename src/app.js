@@ -2,34 +2,34 @@ const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger/swaggerConfig');
-require('dotenv').config();
 const { port } = require('./config');
 const conectarDB = require('./database');
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
-// ✅ Middleware para permitir CORS desde cualquier origen
+// Middleware
 app.use(cors());
-
-// Middleware para parsear JSON
 app.use(express.json());
 
-// Conectar a MongoDB
-conectarDB();
+// Documentación Swagger
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rutas
 app.use('/api/auth', authRoutes);
 
-// Swagger Docs
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
 // Ruta base
 app.get('/', (req, res) => {
-  res.send('Microservicio de Autenticación funcionando 🚀');
+  res.send('🚀 Microservicio de Autenticación funcionando');
 });
 
-// Iniciar servidor
-app.listen(port, () => {
-  console.log(`✅ Servidor autenticación corriendo en http://localhost:${port}`);
-});
+// Conectar a la base de datos y levantar servidor
+conectarDB()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`✅ Servidor autenticación corriendo en http://localhost:${port}`);
+    });
+  })
+  .catch((error) => {
+    console.error('❌ No se pudo iniciar el servidor debido a un error de conexión a MongoDB:', error);
+  });
