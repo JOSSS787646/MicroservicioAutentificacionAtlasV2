@@ -1,16 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger/swaggerConfig'); // Asegúrate de tener este archivo
-
+const swaggerDocument = require('./swagger/swaggerConfig');
+require('dotenv').config();
 const { port } = require('./config');
 const conectarDB = require('./database');
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
-// Middleware
-//app.use(cors());
+// ✅ Middleware para permitir CORS desde cualquier origen
+app.use(cors());
+
+// Middleware para parsear JSON
 app.use(express.json());
 
 // Conectar a MongoDB
