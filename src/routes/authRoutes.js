@@ -8,6 +8,7 @@ router.get('/recovery-questions', authController.getCommonRecoveryQuestions);
 router.post('/verify-recovery', authController.verifyRecoveryAnswer);
 router.post('/reset-password', authController.resetPassword);
 router.get('/recovery-question/:username', authController.getRecoveryQuestionByUsername);
+router.post('/refresh-token', authController.refreshToken);
 
 
 module.exports = router;

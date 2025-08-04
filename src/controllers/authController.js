@@ -117,6 +117,7 @@ exports.register = async (req, res) => {
  *       500:
  *         description: Error en el servidor
  */
+
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -135,16 +136,40 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Usuario o contraseña incorrectos.' });
     }
 
-    const token = jwt.sign({ id: user._id, username: user.username }, jwtSecret, {
-      expiresIn: '24h',
-    });
+    // Generar access token
+    const accessToken = jwt.sign(
+      { id: user._id, username: user.username },
+      jwtSecret,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,       // ej. "1h"
+        issuer: process.env.JWT_ISSUER,
+        audience: process.env.JWT_AUDIENCE
+      }
+    );
 
-    res.json({ token });
+    // Generar refresh token con duración más larga
+    const refreshToken = jwt.sign(
+      { id: user._id, username: user.username },
+      jwtSecret,
+      {
+        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN, // ✅ usa variable del .env
+        issuer: process.env.JWT_ISSUER,
+        audience: process.env.JWT_AUDIENCE
+      }
+    );
+
+
+    // Opcional: guardar refreshToken en base de datos o en Redis si quieres poder revocarlo
+
+    // Enviar ambos tokens
+    res.json({ accessToken, refreshToken });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error en el servidor.' });
   }
 };
+
 
 /**
  * @swagger
@@ -328,4 +353,56 @@ exports.getRecoveryQuestionByUsername = async (req, res) => {
     console.error('Error al obtener la pregunta de recuperación:', error);
     res.status(500).json({ message: 'Error en el servidor.' });
   }
+};
+
+
+
+
+/**
+ * @swagger
+ * /api/auth/refresh-token:
+ *   post:
+ *     summary: Renovar access token con refresh token
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Nuevo access token generado
+ *       401:
+ *         description: Token inválido o expirado
+ */
+exports.refreshToken = (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token requerido.' });
+  }
+
+  jwt.verify(refreshToken, jwtSecret, (err, userData) => {
+    if (err) {
+      return res.status(401).json({ message: 'Refresh token inválido o expirado.' });
+    }
+
+    // Generar un nuevo access token
+    const newAccessToken = jwt.sign(
+      { id: userData.id, username: userData.username },
+      jwtSecret,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+        issuer: process.env.JWT_ISSUER,
+        audience: process.env.JWT_AUDIENCE
+      }
+    );
+
+    res.json({ accessToken: newAccessToken });
+  });
 };
